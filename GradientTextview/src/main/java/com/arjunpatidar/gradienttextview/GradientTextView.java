@@ -1,70 +1,109 @@
 package com.arjunpatidar.gradienttextview;
 
-import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.res.TypedArray;
-import android.graphics.Color;
 import android.graphics.LinearGradient;
 import android.graphics.Shader;
 import android.util.AttributeSet;
-import android.widget.TextView;
+import android.util.Log;
 
-import androidx.core.content.ContextCompat;
+import androidx.appcompat.widget.AppCompatTextView;
 
-@SuppressLint("AppCompatCustomView")
-public class GradientTextView extends TextView {
+public class GradientTextView extends AppCompatTextView {
 
-    private static int startColor,endColor;
+
+    private int[] mColors;
+
+    private int mAngle = 0;
+
+    private DIRECTION mDIRECTION;
+
+    public enum DIRECTION {
+        LEFT(0),
+        TOP(90),
+        RIGHT(180),
+        BOTTOM(270);
+
+        int angle;
+
+        DIRECTION(int angle) {
+            this.angle = angle;
+        }
+    }
 
     public GradientTextView(Context context) {
         super(context);
+        init(context, null);
     }
 
     public GradientTextView(Context context, AttributeSet attrs) {
         super(context, attrs);
+        init(context, attrs);
     }
 
-    public GradientTextView(Context context,
-                            AttributeSet attrs,
-                            int defStyleAttr) {
+    public GradientTextView(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
-
-        init(attrs);
     }
 
-    private void init(AttributeSet set) {
-
-        if (set ==null)
-            return;
-
-        TypedArray ta= getContext().obtainStyledAttributes(set,R.styleable.GradientTextView);
-        startColor=ta.getColor(R.styleable.GradientTextView_startColor,Color.RED);
-        endColor=ta.getColor(R.styleable.GradientTextView_endColor,Color.YELLOW);
-
-        ta.recycle();
-
-
-    }
-
-    @SuppressLint("DrawAllocation")
     @Override
-    protected void onLayout(boolean changed, int left, int top,
-                            int right, int bottom) {
-        super.onLayout(changed, left, top, right, bottom);
-
-
-        if (changed) {
-            getPaint().setShader(new LinearGradient(0,
-                    0,
-                    getWidth(),
-                    getHeight(),
-                    ContextCompat.getColor(getContext(),
-                            startColor),
-                    ContextCompat.getColor(getContext(),
-                            endColor),
-                    Shader.TileMode.CLAMP));
+    protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+        super.onSizeChanged(w, h, oldw, oldh);
+        //if colors haven't been set, skip this
+        if (mColors != null) {
+            int[] xyPositions = calculateGradientPositions(w, h);
+            Shader shader= new LinearGradient(xyPositions[0], xyPositions[1], xyPositions[2], xyPositions[3], mColors, null, Shader.TileMode.CLAMP);
+            getPaint().setShader(shader);
         }
+
     }
 
+    private int[] calculateGradientPositions(int w, int h) {
+        int[] gradientPositions;
+        if (mAngle < 0 || mAngle > 360) {
+            // TODO: 9/26/2017 fix angle calculations
+        }
+        if (mDIRECTION != null) {
+            switch (mDIRECTION) {
+                case TOP:
+                    return new int[]{0, h, 0, 0};
+                case RIGHT:
+                    return new int[]{0, 0, w, 0};
+                case BOTTOM:
+                    return new int[]{0, 0, 0, h};
+                case LEFT:
+                default:
+                    return new int[]{w, 0, 0, 0};
+            }
+        }
+        //should not reach here
+        return new int[]{0, 0, 0, 0};
+    }
 
+    private void init(Context context, AttributeSet attributeSet) {
+
+        final TypedArray typedArray = context.obtainStyledAttributes(attributeSet, R.styleable.GradientTextView);
+
+        try {
+            int colorArrayResourceId = typedArray.getResourceId(R.styleable.GradientTextView_gt_color_list, 0);
+            if (colorArrayResourceId != 0) {
+                mColors = getResources().getIntArray(colorArrayResourceId);
+            }
+            if (typedArray.hasValue(R.styleable.GradientTextView_gt_gradient_direction)) {
+                int value = typedArray.getInt(R.styleable.GradientTextView_gt_gradient_direction, 0);
+                mDIRECTION = DIRECTION.values()[value];
+            }
+
+            if (typedArray.hasValue(R.styleable.GradientTextView_gt_gradient_angle)) {
+                mAngle = typedArray.getInt(R.styleable.GradientTextView_gt_gradient_angle, 0);
+            }
+
+        } catch (Exception e) {
+            if (BuildConfig.DEBUG) {
+            }
+        } finally {
+            typedArray.recycle();
+        }
+
+
+    }
 }
