@@ -1,0 +1,3 @@
+include ':GradientTextview'
+include ':app'
+rootProject.name = "AndroidGradientTextview"
